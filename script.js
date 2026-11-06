@@ -261,6 +261,8 @@ function reducedMotion() {
 
 function renderGames() {
   const grid = $('#games-grid');
+  if (!grid) return;
+
   grid.innerHTML = games.map(game => `
     <button
       class="game-button"
@@ -300,7 +302,7 @@ function renderGames() {
   $$('.game-button', grid).forEach(button => {
     button.addEventListener('click', () => {
       if (button.dataset.game === selectedGameId) {
-        $('#topup').scrollIntoView({
+        $('#topup')?.scrollIntoView({
           behavior: reducedMotion() ? 'auto' : 'smooth',
           block: 'start'
         });
@@ -321,36 +323,17 @@ function renderGames() {
 
       renderTopup(true);
 
-      $('#selection-status').textContent = `Выбрана игра ${getGame().name}. Укажи номинал и аккаунт.`;
+      const statusEl = $('#selection-status');
+      if (statusEl) {
+        statusEl.textContent = `Выбрана игра ${getGame().name}. Укажи номинал и аккаунт.`;
+      }
     });
-  });
-
-  $$('.game-banner img', grid).forEach(image => {
-    const loaded = () => image.parentElement.classList.add('is-loaded');
-
-    const unavailable = () => {
-      if (image.hidden) return;
-      image.hidden = true;
-      const tile = image.closest('.game-button');
-      const game = games.find(item => item.id === tile.dataset.game);
-      const fallback = document.createElement('span');
-      fallback.style.cssText = 'position:absolute;right:10%;top:12%;width:135px;height:135px;opacity:.35;transform:rotate(-12deg)';
-      fallback.innerHTML = icon(game.logo, 'game-logo');
-      $('svg', fallback).style.cssText = 'width:100%;height:100%';
-      image.parentElement.append(fallback);
-    };
-
-    image.addEventListener('load', loaded, { once: true });
-    image.addEventListener('error', unavailable, { once: true });
-
-    if (image.complete) {
-      image.naturalWidth ? loaded() : unavailable();
-    }
   });
 }
 
 function renderTopup(changed = false) {
   const game = getGame();
+  if (!game) return;
   const draft = accountDrafts.get(game.id);
 
   $('#topup-title').textContent = `Пополнение ${game.name}`;
@@ -401,10 +384,6 @@ function renderTopup(changed = false) {
   });
 
   updateTotal();
-
-  if (changed && !reducedMotion() && $('#topup-header')?.animate) {
-    $('#topup-header').animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 300 });
-  }
 }
 
 function updateTotal() {
@@ -511,7 +490,7 @@ function persistOrders() {
   }
 }
 
-$('#topup-form').addEventListener('submit', event => {
+$('#topup-form')?.addEventListener('submit', event => {
   event.preventDefault();
 
   const game = getGame();
@@ -555,7 +534,7 @@ $('#topup-form').addEventListener('submit', event => {
   $('#checkout-email').focus({ preventScroll: true });
 });
 
-$('#checkout-form').addEventListener('submit', event => {
+$('#checkout-form')?.addEventListener('submit', event => {
   event.preventDefault();
 
   if (!checkoutSnapshot || !event.target.reportValidity()) return;
@@ -587,7 +566,7 @@ $('#checkout-form').addEventListener('submit', event => {
   checkoutSnapshot = null;
 });
 
-$('#copy-order').addEventListener('click', async () => {
+$('#copy-order')?.addEventListener('click', async () => {
   if (!lastOrder) return;
   const game = games.find(item => item.id === lastOrder.gameId);
 
@@ -624,6 +603,7 @@ function element(tag, className, text) {
 
 function renderOrderHistory() {
   const list = $('#order-list');
+  if (!list) return;
   list.replaceChildren();
   $('#clear-orders').hidden = !orders.length;
 
@@ -658,7 +638,7 @@ $$('[data-open-orders]').forEach(button => {
   });
 });
 
-$('#clear-orders').addEventListener('click', () => {
+$('#clear-orders')?.addEventListener('click', () => {
   if (!window.confirm('Удалить все демонстрационные заявки из этого браузера?')) return;
   orders = [];
   persistOrders();
@@ -692,15 +672,15 @@ $$('[data-info]').forEach(button => {
 
     $('#open-faq')?.addEventListener('click', () => {
       $('#info-dialog').close();
-      $('#faq').scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth' });
+      $('#faq')?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth' });
     });
 
     openDialog($('#info-dialog'));
   });
 });
 
-$('#search-games').addEventListener('input', filterGames);
-$('#clear-search').addEventListener('click', () => {
+$('#search-games')?.addEventListener('input', filterGames);
+$('#clear-search')?.addEventListener('click', () => {
   $('#search-games').value = '';
   filterGames();
   $('#search-games').focus();
@@ -713,15 +693,15 @@ $$('.category-filter').forEach(button => {
   });
 });
 
-$('#reset-filters').addEventListener('click', () => {
+$('#reset-filters')?.addEventListener('click', () => {
   currentCategory = 'all';
   $('#search-games').value = '';
   filterGames();
 });
 
-$('#account-input').addEventListener('input', clearAccountError);
+$('#account-input')?.addEventListener('input', clearAccountError);
 
-$('#menu-toggle').addEventListener('click', () => {
+$('#menu-toggle')?.addEventListener('click', () => {
   const expanded = $('#menu-toggle').getAttribute('aria-expanded') !== 'true';
   $('#mobile-menu').hidden = !expanded;
   $('#menu-toggle').setAttribute('aria-expanded', String(expanded));
@@ -731,7 +711,7 @@ $$('#mobile-menu a').forEach(link => link.addEventListener('click', closeMobileM
 document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMobileMenu(); });
 document.addEventListener('click', event => { if (!event.target.closest('.site-header')) closeMobileMenu(); });
 
-// Auth logic
+// Авторизация (демо)
 const sessionKey = 'frag-demo-session-v1';
 const loginEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 let session = null;
@@ -764,6 +744,8 @@ function renderAuthButton() {
 function showLoginView(mode) {
   const formWrap = $('#login-form-wrap');
   const profile = $('#login-profile');
+  if (!formWrap || !profile) return;
+
   if (mode === 'profile') {
     formWrap.hidden = true;
     profile.hidden = false;
@@ -781,7 +763,7 @@ $$('[data-open-login]').forEach(button => {
   });
 });
 
-$('#login-form').addEventListener('submit', event => {
+$('#login-form')?.addEventListener('submit', event => {
   event.preventDefault();
   const email = $('#login-email').value.trim();
   const password = $('#login-password').value;
@@ -795,7 +777,7 @@ $('#login-form').addEventListener('submit', event => {
   showLoginView('profile');
 });
 
-$('#logout-button').addEventListener('click', () => {
+$('#logout-button')?.addEventListener('click', () => {
   session = null;
   try { localStorage.removeItem(sessionKey); } catch {}
   renderAuthButton();
@@ -806,7 +788,8 @@ renderAuthButton();
 renderGames();
 renderTopup();
 
-$('#year').textContent = new Date().getFullYear();
+const yearEl = $('#year');
+if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 if ('IntersectionObserver' in window && !reducedMotion()) {
   document.documentElement.classList.add('motion-ready');
@@ -817,9 +800,9 @@ if ('IntersectionObserver' in window && !reducedMotion()) {
         observer.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.08 });
+  }, { threshold: 0.05 });
 
   $$('.reveal').forEach(section => observer.observe(section));
 }
 
-$('#hero-agent').addEventListener('error', function () { this.hidden = true; }, { once: true });
+$('#hero-agent')?.addEventListener('error', function () { this.hidden = true; }, { once: true });
