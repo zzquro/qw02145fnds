@@ -3,11 +3,8 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
-const money = value =>
-  new Intl.NumberFormat('ru-RU').format(value) + ' ₽';
-
-const number = value =>
-  new Intl.NumberFormat('ru-RU').format(value);
+const money = value => new Intl.NumberFormat('ru-RU').format(value) + ' ₽';
+const number = value => new Intl.NumberFormat('ru-RU').format(value);
 
 const icon = (name, className = 'icon') =>
   `<svg class="${className}" aria-hidden="true"><use href="#${name}"/></svg>`;
@@ -263,7 +260,8 @@ function reducedMotion() {
 }
 
 function renderGames() {
-  $('#games-grid').innerHTML = games.map(game => `
+  const grid = $('#games-grid');
+  grid.innerHTML = games.map(game => `
     <button
       class="game-button"
       type="button"
@@ -299,7 +297,7 @@ function renderGames() {
     </button>
   `).join('');
 
-  $$('.game-button').forEach(button => {
+  $$('.game-button', grid).forEach(button => {
     button.addEventListener('click', () => {
       if (button.dataset.game === selectedGameId) {
         $('#topup').scrollIntoView({
@@ -317,35 +315,26 @@ function renderGames() {
       selectedGameId = button.dataset.game;
       selectedPack = 1;
 
-      $$('.game-button').forEach(tile => {
-        tile.setAttribute(
-          'aria-pressed',
-          String(tile.dataset.game === selectedGameId)
-        );
+      $$('.game-button', grid).forEach(tile => {
+        tile.setAttribute('aria-pressed', String(tile.dataset.game === selectedGameId));
       });
 
       renderTopup(true);
 
-      $('#selection-status').textContent =
-        `Выбрана игра ${getGame().name}. Укажи номинал и аккаунт.`;
+      $('#selection-status').textContent = `Выбрана игра ${getGame().name}. Укажи номинал и аккаунт.`;
     });
   });
 
-  $$('.game-banner img').forEach(image => {
+  $$('.game-banner img', grid).forEach(image => {
     const loaded = () => image.parentElement.classList.add('is-loaded');
 
     const unavailable = () => {
       if (image.hidden) return;
-
       image.hidden = true;
-
       const tile = image.closest('.game-button');
       const game = games.find(item => item.id === tile.dataset.game);
       const fallback = document.createElement('span');
-
-      fallback.style.cssText =
-        'position:absolute;right:10%;top:12%;width:135px;height:135px;opacity:.35;transform:rotate(-12deg)';
-
+      fallback.style.cssText = 'position:absolute;right:10%;top:12%;width:135px;height:135px;opacity:.35;transform:rotate(-12deg)';
       fallback.innerHTML = icon(game.logo, 'game-logo');
       $('svg', fallback).style.cssText = 'width:100%;height:100%';
       image.parentElement.append(fallback);
@@ -369,23 +358,22 @@ function renderTopup(changed = false) {
   $('#account-label').textContent = game.account;
   $('#account-input').placeholder = game.placeholder;
   $('#account-input').value = draft?.account || '';
-  $('#account-input').inputMode =
-    ['genshin', 'pubg', 'standoff', 'freefire'].includes(game.id) ? 'numeric' : 'text';
+  $('#account-input').inputMode = ['genshin', 'pubg', 'standoff', 'freefire'].includes(game.id) ? 'numeric' : 'text';
 
   $('#account-hint').textContent = game.hint;
   $('#package-note').textContent = game.note;
 
-  $('#region-input').replaceChildren(
-    ...game.regions.map(region => new Option(region, region))
-  );
+  const regionSelect = $('#region-input');
+  regionSelect.replaceChildren(...game.regions.map(region => new Option(region, region)));
 
   if (draft && game.regions.includes(draft.region)) {
-    $('#region-input').value = draft.region;
+    regionSelect.value = draft.region;
   }
 
   clearAccountError();
 
-  $('#package-grid').innerHTML = game.packs.map((pack, index) => `
+  const pkgGrid = $('#package-grid');
+  pkgGrid.innerHTML = game.packs.map((pack, index) => `
     <label class="package">
       <input
         type="radio"
@@ -405,7 +393,7 @@ function renderTopup(changed = false) {
     </label>
   `).join('');
 
-  $$('input[name="package"]').forEach(input => {
+  $$('input[name="package"]', pkgGrid).forEach(input => {
     input.addEventListener('change', () => {
       selectedPack = Number(input.value);
       updateTotal();
@@ -415,10 +403,7 @@ function renderTopup(changed = false) {
   updateTotal();
 
   if (changed && !reducedMotion() && $('#topup-header')?.animate) {
-    $('#topup-header').animate(
-      [{ opacity: 0.35 }, { opacity: 1 }],
-      { duration: 400 }
-    );
+    $('#topup-header').animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 300 });
   }
 }
 
@@ -436,16 +421,11 @@ function filterGames() {
   let visible = 0;
 
   games.forEach(game => {
-    const searchable =
-      `${game.name} ${game.shortName || ''} ${game.currency} ${game.keywords}`
-        .toLocaleLowerCase('ru-RU');
+    const searchable = `${game.name} ${game.shortName || ''} ${game.currency} ${game.keywords}`.toLocaleLowerCase('ru-RU');
+    const match = (currentCategory === 'all' || game.platforms.includes(currentCategory)) && searchable.includes(query);
 
-    const match =
-      (currentCategory === 'all' || game.platforms.includes(currentCategory)) &&
-      searchable.includes(query);
-
-    $(`[data-game="${game.id}"]`).hidden = !match;
-
+    const btn = $(`[data-game="${game.id}"]`);
+    if (btn) btn.hidden = !match;
     if (match) visible++;
   });
 
@@ -486,15 +466,9 @@ $$('dialog').forEach(dialog => {
 
   dialog.addEventListener('click', event => {
     const bounds = dialog.getBoundingClientRect();
-
     if (
       event.target === dialog &&
-      (
-        event.clientX < bounds.left ||
-        event.clientX > bounds.right ||
-        event.clientY < bounds.top ||
-        event.clientY > bounds.bottom
-      )
+      (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)
     ) {
       dialog.close();
     }
@@ -504,7 +478,6 @@ $$('dialog').forEach(dialog => {
 function loadOrders() {
   try {
     const data = JSON.parse(localStorage.getItem(storageKey) || '[]');
-
     if (!Array.isArray(data)) return [];
 
     return data.filter(order =>
@@ -566,8 +539,7 @@ $('#topup-form').addEventListener('submit', event => {
   };
 
   $('#checkout-game').textContent = game.name;
-  $('#checkout-amount').textContent =
-    `${number(checkoutSnapshot.amount)} ${game.currency}`;
+  $('#checkout-amount').textContent = `${number(checkoutSnapshot.amount)} ${game.currency}`;
   $('#checkout-account').textContent = account;
   $('#checkout-region').textContent = checkoutSnapshot.region;
   $('#checkout-total').textContent = money(checkoutSnapshot.price);
@@ -599,13 +571,12 @@ $('#checkout-form').addEventListener('submit', event => {
   };
 
   orders = [lastOrder, ...orders].slice(0, 20);
-
   const saved = persistOrders();
 
   $('#order-reference').textContent = lastOrder.id;
   $('#success-description').textContent = saved
     ? 'Демозаявка сохранена в этом браузере. Найдешь ее в разделе «Мои заказы» на этом устройстве.'
-    : 'Хранилище браузера недоступно. Демозаявка останется в разделе «Мои заказы» только до закрытия или обновления страницы. Скопируй ее детали.';
+    : 'Хранилище браузера недоступно. Демозаявка останется в разделе «Мои заказы» только до закрытия страницы.';
 
   $('#checkout-details').hidden = true;
   $('#checkout-success').hidden = false;
@@ -618,7 +589,6 @@ $('#checkout-form').addEventListener('submit', event => {
 
 $('#copy-order').addEventListener('click', async () => {
   if (!lastOrder) return;
-
   const game = games.find(item => item.id === lastOrder.gameId);
 
   const text =
@@ -631,21 +601,16 @@ $('#copy-order').addEventListener('click', async () => {
     'Деньги не списаны. Валюта не отправлена.';
 
   try {
-    if (!navigator.clipboard?.writeText) {
-      throw new Error('Clipboard unavailable');
-    }
-
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
     await navigator.clipboard.writeText(text);
     $('#copy-order').textContent = 'Детали скопированы';
-
-    setTimeout(() => {
-      $('#copy-order').textContent = 'Скопировать детали заявки';
-    }, 2500);
+    setTimeout(() => { $('#copy-order').textContent = 'Скопировать детали заявки'; }, 2500);
   } catch {
-    $('#copy-fallback').value = text;
-    $('#copy-fallback').hidden = false;
-    $('#copy-fallback').focus();
-    $('#copy-fallback').select();
+    const fallback = $('#copy-fallback');
+    fallback.value = text;
+    fallback.hidden = false;
+    fallback.focus();
+    fallback.select();
     $('#copy-order').textContent = 'Выделено. Нажми «Копировать»';
   }
 });
@@ -653,11 +618,7 @@ $('#copy-order').addEventListener('click', async () => {
 function element(tag, className, text) {
   const node = document.createElement(tag);
   node.className = className;
-
-  if (text !== undefined) {
-    node.textContent = text;
-  }
-
+  if (text !== undefined) node.textContent = text;
   return node;
 }
 
@@ -667,12 +628,7 @@ function renderOrderHistory() {
   $('#clear-orders').hidden = !orders.length;
 
   if (!orders.length) {
-    list.append(element(
-      'p',
-      'history-empty',
-      'Здесь пока тихо. Выбери игру и создай первую демозаявку. Она появится в этом разделе.'
-    ));
-
+    list.append(element('p', 'history-empty', 'Здесь пока тихо. Выбери игру и создай первую демозаявку.'));
     const link = element('a', 'primary-button', 'Найти свою игру');
     link.href = '#catalog';
     link.addEventListener('click', () => $('#orders-dialog').close());
@@ -685,28 +641,11 @@ function renderOrderHistory() {
     const article = element('article', 'order-item');
     const top = element('div', 'order-item-top');
 
-    top.append(
-      element('strong', '', game.name),
-      element('span', '', money(order.price))
-    );
+    top.append(element('strong', '', game.name), element('span', '', money(order.price)));
+    article.append(top, element('p', 'order-item-details', `${number(order.amount)} ${game.currency} · ${order.account} · ${order.region}`));
 
-    article.append(
-      top,
-      element(
-        'p',
-        'order-item-details',
-        `${number(order.amount)} ${game.currency} · ${order.account} · ${order.region}`
-      )
-    );
-
-    const date = new Intl.DateTimeFormat('ru-RU', {
-      dateStyle: 'short',
-      timeStyle: 'short'
-    }).format(new Date(order.createdAt));
-
-    article.append(
-      element('p', 'order-item-meta', `${order.id} / ${date} / Демозаявка`)
-    );
+    const date = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(order.createdAt));
+    article.append(element('p', 'order-item-meta', `${order.id} / ${date} / Демозаявка`));
 
     list.append(article);
   });
@@ -720,66 +659,40 @@ $$('[data-open-orders]').forEach(button => {
 });
 
 $('#clear-orders').addEventListener('click', () => {
-  if (!window.confirm('Удалить все демонстрационные заявки из этого браузера?')) {
-    return;
-  }
-
+  if (!window.confirm('Удалить все демонстрационные заявки из этого браузера?')) return;
   orders = [];
-  const saved = persistOrders();
-
+  persistOrders();
   renderOrderHistory();
-  $('#clear-orders').hidden = true;
-
-  if (!saved) {
-    $('.dialog-subtitle', $('#orders-dialog')).textContent =
-      'История очищена для этой сессии. Изменить хранилище браузера не удалось.';
-  }
-
-  $('#order-list a')?.focus();
 });
 
 const infoContent = {
   support: {
     title: 'На связи с тобой',
     html: `
-      <p>Для пополнения достаточно игрового ID или логина. Проверь написание аккаунта и его регион. Пароли и коды доступа нам не нужны.</p>
+      <p>Для пополнения достаточно игрового ID или логина. Проверь написание аккаунта и его регион.</p>
       <p>Вопрос про Steam, ошибку в данных или статус заявки? Ответы собрали в FAQ.</p>
-      <p>Сейчас это демоверсия: чат с оператором, прием платежей и выдача валюты не подключены.</p>
-      <button class="primary-button" type="button" id="open-faq">
-        Перейти к ответам ${icon('i-arrow')}
-      </button>
+      <button class="primary-button" type="button" id="open-faq">Перейти к ответам ${icon('i-arrow')}</button>
     `
   },
   terms: {
     title: 'Условия использования',
-    html: `
-      <p>FRAG на этой странице является демонстрационной витриной, а не действующим платежным сервисом. Цены и доступные номиналы приведены для примера и не являются публичной офертой.</p>
-      <p>Подтверждение формы создает только локальную демозаявку. Оно не означает покупку, списание средств или передачу игровой валюты. Не вводи реальные платежные данные.</p>
-      <p>Для запуска реальных продаж владельцу сайта нужно подключить поставщика, платежную систему и разместить собственные юридические условия.</p>
-    `
+    html: `<p>FRAG является демонстрационной витриной. Оплата не требуется.</p>`
   },
   privacy: {
     title: 'Твои данные под контролем',
-    html: `
-      <p>Демозаявки сохраняются в localStorage только в этом браузере. История содержит игровой идентификатор, регион, номинал и демонстрационную стоимость. Ее можно удалить в разделе «Мои заказы».</p>
-      <p>Email используется только для проверки формы, не сохраняется в истории и не отправляется на сервер. Сайт не запрашивает пароли, коды доступа или данные карты.</p>
-      <p>Шрифты и игровые изображения загружаются с внешних сервисов. При загрузке эти сервисы получают стандартные технические данные соединения, включая IP-адрес.</p>
-    `
+    html: `<p>Демозаявки сохраняются в localStorage только в этом браузере.</p>`
   }
 };
 
 $$('[data-info]').forEach(button => {
   button.addEventListener('click', () => {
     const content = infoContent[button.dataset.info];
-
     $('#info-title').textContent = content.title;
     $('#info-body').innerHTML = content.html;
 
     $('#open-faq')?.addEventListener('click', () => {
       $('#info-dialog').close();
-      $('#faq').scrollIntoView({
-        behavior: reducedMotion() ? 'auto' : 'smooth'
-      });
+      $('#faq').scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth' });
     });
 
     openDialog($('#info-dialog'));
@@ -787,7 +700,6 @@ $$('[data-info]').forEach(button => {
 });
 
 $('#search-games').addEventListener('input', filterGames);
-
 $('#clear-search').addEventListener('click', () => {
   $('#search-games').value = '';
   filterGames();
@@ -811,32 +723,15 @@ $('#account-input').addEventListener('input', clearAccountError);
 
 $('#menu-toggle').addEventListener('click', () => {
   const expanded = $('#menu-toggle').getAttribute('aria-expanded') !== 'true';
-
   $('#mobile-menu').hidden = !expanded;
   $('#menu-toggle').setAttribute('aria-expanded', String(expanded));
-  $('#menu-toggle').setAttribute(
-    'aria-label',
-    expanded ? 'Закрыть меню' : 'Открыть меню'
-  );
 });
 
-$$('#mobile-menu a').forEach(link => {
-  link.addEventListener('click', closeMobileMenu);
-});
+$$('#mobile-menu a').forEach(link => link.addEventListener('click', closeMobileMenu));
+document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMobileMenu(); });
+document.addEventListener('click', event => { if (!event.target.closest('.site-header')) closeMobileMenu(); });
 
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') closeMobileMenu();
-});
-
-document.addEventListener('click', event => {
-  if (!event.target.closest('.site-header')) closeMobileMenu();
-});
-
-window.matchMedia('(min-width: 701px)').addEventListener('change', event => {
-  if (event.matches) closeMobileMenu();
-});
-
-// ===== Вход в аккаунт (демо, с проверкой данных) =====
+// Auth logic
 const sessionKey = 'frag-demo-session-v1';
 const loginEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 let session = null;
@@ -845,9 +740,7 @@ try {
   const raw = localStorage.getItem(sessionKey);
   if (raw) {
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed.email === 'string' && parsed.email.length <= 120) {
-      session = { email: parsed.email };
-    }
+    if (parsed && typeof parsed.email === 'string') session = { email: parsed.email };
   }
 } catch {}
 
@@ -859,66 +752,30 @@ function renderAuthButton() {
   if (label && button) {
     if (session) {
       label.textContent = 'Профиль';
-      button.setAttribute('aria-label', 'Профиль: ' + session.email);
       button.classList.add('is-logged');
     } else {
       label.textContent = 'Вход';
-      button.setAttribute('aria-label', 'Вход в аккаунт');
       button.classList.remove('is-logged');
     }
   }
-
-  if (mobile) {
-    mobile.textContent = session ? 'Профиль' : 'Вход в аккаунт';
-  }
+  if (mobile) mobile.textContent = session ? 'Профиль' : 'Вход в аккаунт';
 }
 
 function showLoginView(mode) {
   const formWrap = $('#login-form-wrap');
   const profile = $('#login-profile');
-  const dialog = $('#login-dialog');
-  if (!formWrap || !profile || !dialog) return;
-
   if (mode === 'profile') {
     formWrap.hidden = true;
     profile.hidden = false;
-    dialog.setAttribute('aria-labelledby', 'login-profile-title');
-    if (session) {
-      $('#login-profile-text').textContent =
-        'Вы вошли как ' + session.email + '. История заказов хранится в этом браузере.';
-    }
+    if (session) $('#login-profile-text').textContent = 'Вы вошли как ' + session.email;
   } else {
     formWrap.hidden = false;
     profile.hidden = true;
-    dialog.setAttribute('aria-labelledby', 'login-title');
-  }
-}
-
-function clearLoginError(errorId) {
-  const el = $(errorId);
-  if (el) {
-    el.hidden = true;
-    el.textContent = '';
-  }
-}
-
-function setLoginError(inputId, errorId, message) {
-  const input = $(inputId);
-  const el = $(errorId);
-  if (el) {
-    el.textContent = message;
-    el.hidden = false;
-  }
-  if (input) {
-    input.setAttribute('aria-invalid', 'true');
   }
 }
 
 $$('[data-open-login]').forEach(button => {
   button.addEventListener('click', () => {
-    closeMobileMenu();
-    clearLoginError('#login-email-error');
-    clearLoginError('#login-password-error');
     showLoginView(session ? 'profile' : 'form');
     openDialog($('#login-dialog'));
   });
@@ -926,65 +783,26 @@ $$('[data-open-login]').forEach(button => {
 
 $('#login-form').addEventListener('submit', event => {
   event.preventDefault();
-
   const email = $('#login-email').value.trim();
   const password = $('#login-password').value;
 
-  clearLoginError('#login-email-error');
-  clearLoginError('#login-password-error');
-  $('#login-email').removeAttribute('aria-invalid');
-  $('#login-password').removeAttribute('aria-invalid');
-
-  let valid = true;
-
-  if (!email) {
-    setLoginError('#login-email', '#login-email-error', 'Укажи email, чтобы продолжить.');
-    valid = false;
-  } else if (!loginEmailPattern.test(email)) {
-    setLoginError('#login-email', '#login-email-error', 'Введи корректный email, например player@example.com.');
-    valid = false;
-  }
-
-  if (!password) {
-    setLoginError('#login-password', '#login-password-error', 'Введи пароль.');
-    valid = false;
-  } else if (password.length < 6) {
-    setLoginError('#login-password', '#login-password-error', 'Пароль должен быть не короче 6 символов.');
-    valid = false;
-  }
-
-  if (!valid) {
-    if (!$('#login-email-error').hidden) {
-      $('#login-email').focus();
-    } else {
-      $('#login-password').focus();
-    }
-    return;
-  }
+  if (!email || !loginEmailPattern.test(email) || password.length < 6) return;
 
   session = { email };
   try { localStorage.setItem(sessionKey, JSON.stringify(session)); } catch {}
 
-  $('#login-email').value = '';
-  $('#login-password').value = '';
   renderAuthButton();
-  $('#login-profile-text').textContent =
-    'Вы вошли как ' + email + '. История заказов хранится в этом браузере.';
   showLoginView('profile');
 });
 
 $('#logout-button').addEventListener('click', () => {
   session = null;
   try { localStorage.removeItem(sessionKey); } catch {}
-
   renderAuthButton();
-  clearLoginError('#login-email-error');
-  clearLoginError('#login-password-error');
   showLoginView('form');
 });
 
 renderAuthButton();
-
 renderGames();
 renderTopup();
 
@@ -992,7 +810,6 @@ $('#year').textContent = new Date().getFullYear();
 
 if ('IntersectionObserver' in window && !reducedMotion()) {
   document.documentElement.classList.add('motion-ready');
-
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -1005,6 +822,4 @@ if ('IntersectionObserver' in window && !reducedMotion()) {
   $$('.reveal').forEach(section => observer.observe(section));
 }
 
-$('#hero-agent').addEventListener('error', function () {
-  this.hidden = true;
-}, { once: true });
+$('#hero-agent').addEventListener('error', function () { this.hidden = true; }, { once: true });
